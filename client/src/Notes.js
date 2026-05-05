@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
 function Notes({ API }) {
@@ -6,31 +6,21 @@ function Notes({ API }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
-  // SAFETY: ensure API exists
-  if (!API) {
-    console.error("API is undefined");
-  }
-
-  // GET notes
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
-      console.log("Fetching notes from:", API);
-
       const res = await axios.get(`${API}/notes`, {
         withCredentials: true,
       });
-
       setNotes(res.data);
     } catch (err) {
-      console.error("Fetch notes error:", err.response?.data || err.message);
+      console.error("Fetch notes error:", err.response?.data);
     }
-  };
+  }, [API]);
 
   useEffect(() => {
     fetchNotes();
-  }, [API]);
+  }, [fetchNotes]);
 
-  // ADD note
   const addNote = async () => {
     if (!title.trim() || !content.trim()) {
       alert("Enter title and content");
@@ -38,8 +28,6 @@ function Notes({ API }) {
     }
 
     try {
-      console.log("POST →", `${API}/notes`);
-
       await axios.post(
         `${API}/notes`,
         { title, content },
@@ -50,12 +38,11 @@ function Notes({ API }) {
       setContent("");
       fetchNotes();
     } catch (err) {
-      console.error("Add note error:", err.response?.data || err.message);
-      alert("Failed to add note (check login)");
+      console.error("Add note error:", err.response?.data);
+      alert("Failed to add note");
     }
   };
 
-  // DELETE note
   const deleteNote = async (id) => {
     try {
       await axios.delete(`${API}/notes/${id}`, {
@@ -89,17 +76,9 @@ function Notes({ API }) {
       <h2>Notes</h2>
 
       {notes.map((note) => (
-        <div
-          key={note.id}
-          style={{
-            border: "1px solid gray",
-            margin: "10px",
-            padding: "10px",
-          }}
-        >
+        <div key={note.id}>
           <h3>{note.title}</h3>
           <p>{note.content}</p>
-
           <button onClick={() => deleteNote(note.id)}>Delete</button>
         </div>
       ))}

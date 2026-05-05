@@ -1,25 +1,106 @@
 require("dotenv").config();
-const pool = require("./database");
-
-
 const express = require("express");
 const cors = require("cors");
+const session = require("express-session");
+const bcrypt = require("bcrypt");
+const pool = require("./database");
 
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true
+}));
+
 app.use(express.json());
 
-const PORT = 5000;
+app.use(session({
+  secret: "secret-key",
+  resave: false,
+  saveUninitialized: false,
+}));
 
-// Test
+const PORT = 5001;
+
+// ================= AUTH MIDDLEWARE =================
+function auth(req, res, next) {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+// ================= TEST =================
 app.get("/", (req, res) => {
-    res.send("Hello World!");
+  res.send("API Running");
 });
 
-// GET notes (from database)
-app.get("/notes", async (req, res) => {
+// ================= REGISTER =================
+app.post("/register", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM notes ORDER BY id DESC");
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      "INSERT INTO users (username, password) VALUES ($1, $2)",
+      [username, hashed]
+    );
+
+    res.json({ message: "User created" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ================= LOGIN =================
+app.post("/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    const result = await pool.query(
+      "SELECT * FROM users WHERE username = $1",
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const user = result.rows[0];
+    const valid = await bcrypt.compare(password, user.password);
+
+    if (!valid) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    req.session.user = user.id;
+
+    res.json({ message: "Logged in" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ================= LOGOUT =================
+app.post("/logout", (req, res) => {
+  req.session.destroy();
+  res.json({ message: "Logged out" });
+});
+
+// ================= GET NOTES =================
+app.get("/notes", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM notes WHERE user_id = $1 ORDER BY id DESC",
+      [req.session.user]
+    );
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -27,14 +108,20 @@ app.get("/notes", async (req, res) => {
   }
 });
 
-// POST note (to database)
-app.post("/notes", async (req, res) => {
+// ================= CREATE NOTE =================
+app.post("/notes", auth, async (req, res) => {
   try {
     const { title, content } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({ error: "Missing fields" });
+    }
+
     const result = await pool.query(
-      "INSERT INTO notes (title, content) VALUES ($1, $2) RETURNING *",
-      [title, content]
+      "INSERT INTO notes (title, content, user_id) VALUES ($1, $2, $3) RETURNING *",
+      [title, content, req.session.user]
     );
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
@@ -42,6 +129,47 @@ app.post("/notes", async (req, res) => {
   }
 });
 
+// ================= UPDATE NOTE =================
+app.put("/notes/:id", auth, async (req, res) => {
+  try {
+    const { title, content } = req.body;
+
+    const result = await pool.query(
+      "UPDATE notes SET title=$1, content=$2 WHERE id=$3 AND user_id=$4 RETURNING *",
+      [title, content, req.params.id, req.session.user]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ================= DELETE NOTE =================
+app.delete("/notes/:id", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "DELETE FROM notes WHERE id=$1 AND user_id=$2 RETURNING *",
+      [req.params.id, req.session.user]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+
+    res.json({ message: "Note deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ================= START SERVER =================
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });

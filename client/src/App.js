@@ -4,37 +4,49 @@ import Notes from "./Notes";
 import "./index.css";
 
 function App() {
-  const API = "https://studynet-q8mu.onrender.com";
-
+  const API = "https://studynet-q8mu.onrender.com"; 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
 
+  // REGISTER
+  const register = async () => {
+    if (!username.trim() || !password.trim()) {
+      alert("Enter username and password");
+      return;
+    }
+
+    try {
+      await axios.post(`${API}/register`, {
+        username,
+        password,
+      });
+
+      alert("User created! Now login.");
+    } catch (err) {
+      console.error(err.response?.data);
+
+      alert(err.response?.data?.error || "Register failed");
+    }
+  };
+
   // LOGIN
   const login = async () => {
+    if (!username.trim() || !password.trim()) {
+      alert("Enter username and password");
+      return;
+    }
+
     try {
       await axios.post(
         `${API}/login`,
         { username, password },
         { withCredentials: true }
       );
+
       setLoggedIn(true);
     } catch (err) {
       alert("Login failed");
-      console.error(err);
-    }
-  };
-
-  // REGISTER
-  const register = async () => {
-    try {
-      await axios.post(`${API}/register`, {
-        username,
-        password,
-      });
-      alert("User created! Now log in.");
-    } catch (err) {
-      alert("Register failed (username may exist)");
       console.error(err);
     }
   };

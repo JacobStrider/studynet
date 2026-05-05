@@ -1,58 +1,69 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-function Notes() {
-  const API = "http://localhost:5001";
-
+function Notes({ API }) {
   const [notes, setNotes] = useState([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [editingId, setEditingId] = useState(null);
-  const [quote, setQuote] = useState("");
 
+  // GET notes
   const fetchNotes = async () => {
-    const res = await axios.get(`${API}/notes`, { withCredentials: true });
-    setNotes(res.data);
-  };
-
-  const addNote = async () => {
-    await axios.post(`${API}/notes`, { title, content }, { withCredentials: true });
-    setTitle("");
-    setContent("");
-    fetchNotes();
-  };
-
-  const updateNote = async (id) => {
-    await axios.put(`${API}/notes/${id}`, { title, content }, { withCredentials: true });
-    setEditingId(null);
-    setTitle("");
-    setContent("");
-    fetchNotes();
-  };
-
-  const deleteNote = async (id) => {
-    await axios.delete(`${API}/notes/${id}`, { withCredentials: true });
-    fetchNotes();
-  };
-
-  const fetchQuote = async () => {
-    const res = await axios.get("https://api.quotable.io/random");
-    setQuote(res.data.content);
+    try {
+      const res = await axios.get(`${API}/notes`, {
+        withCredentials: true,
+      });
+      setNotes(res.data);
+    } catch (err) {
+      console.error("Fetch notes error:", err.response?.data);
+    }
   };
 
   useEffect(() => {
     fetchNotes();
-    fetchQuote();
   }, []);
 
-  return (
-    <>
-      <div className="api-box">
-        <h3>📡 Study Tip</h3>
-        <p>{quote}</p>
-      </div>
+  // ADD note
+  const addNote = async () => {
+    if (!title.trim() || !content.trim()) {
+      alert("Enter title and content");
+      return;
+    }
 
-      <h2>{editingId ? "Edit Note" : "Add Note"}</h2>
+    try {
+      console.log("Adding:", title, content);
+
+      await axios.post(
+        `${API}/notes`,
+        { title, content },
+        { withCredentials: true }
+      );
+
+      console.log("Note added!");
+
+      setTitle("");
+      setContent("");
+      fetchNotes();
+    } catch (err) {
+      console.error("Add note error:", err.response?.data);
+      alert("Failed to add note");
+    }
+  };
+
+  // DELETE note
+  const deleteNote = async (id) => {
+    try {
+      await axios.delete(`${API}/notes/${id}`, {
+        withCredentials: true,
+      });
+      fetchNotes();
+    } catch (err) {
+      console.error("Delete error:", err.response?.data);
+    }
+  };
+
+  return (
+    <div>
+      <h2>Add Note</h2>
 
       <input
         placeholder="Title"
@@ -66,37 +77,20 @@ function Notes() {
         onChange={(e) => setContent(e.target.value)}
       />
 
-      <button
-        className="primary-btn"
-        onClick={() => editingId ? updateNote(editingId) : addNote()}
-      >
-        {editingId ? "Update Note" : "Add Note"}
-      </button>
+      <br />
+      <button onClick={addNote}>Add Note</button>
 
       <h2>Notes</h2>
 
       {notes.map((note) => (
-        <div key={note.id} className="note-card">
+        <div key={note.id} style={{ border: "1px solid gray", margin: "10px", padding: "10px" }}>
           <h3>{note.title}</h3>
           <p>{note.content}</p>
 
-          <button
-            className="primary-btn"
-            onClick={() => {
-              setEditingId(note.id);
-              setTitle(note.title);
-              setContent(note.content);
-            }}
-          >
-            Edit
-          </button>
-
-          <button className="logout-btn" onClick={() => deleteNote(note.id)}>
-            Delete
-          </button>
+          <button onClick={() => deleteNote(note.id)}>Delete</button>
         </div>
       ))}
-    </>
+    </div>
   );
 }
 

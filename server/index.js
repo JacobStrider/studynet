@@ -42,6 +42,7 @@ app.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
 
+
     if (!username || !password) {
       return res.status(400).json({ error: "Missing fields" });
     }
@@ -55,6 +56,11 @@ app.post("/register", async (req, res) => {
 
     res.json({ message: "User created" });
   } catch (err) {
+    
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Username already exists" });
+    }
+
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }

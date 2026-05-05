@@ -4,21 +4,42 @@ import Notes from "./Notes";
 import "./index.css";
 
 function App() {
-  const API = "http://localhost:5001";
+  const API = "https://studynet-q8mu.onrender.com";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
 
+  // LOGIN
   const login = async () => {
     try {
-      await axios.post(`${API}/login`, { username, password }, { withCredentials: true });
+      await axios.post(
+        `${API}/login`,
+        { username, password },
+        { withCredentials: true }
+      );
       setLoggedIn(true);
-    } catch {
+    } catch (err) {
       alert("Login failed");
+      console.error(err);
     }
   };
 
+  // REGISTER
+  const register = async () => {
+    try {
+      await axios.post(`${API}/register`, {
+        username,
+        password,
+      });
+      alert("User created! Now log in.");
+    } catch (err) {
+      alert("Register failed (username may exist)");
+      console.error(err);
+    }
+  };
+
+  // LOGOUT
   const logout = async () => {
     await axios.post(`${API}/logout`, {}, { withCredentials: true });
     setLoggedIn(false);
@@ -29,17 +50,34 @@ function App() {
       <h1>StudyNet</h1>
 
       {!loggedIn ? (
-        <>
-          <h2>Login</h2>
-          <input placeholder="Username" onChange={(e) => setUsername(e.target.value)} />
-          <input type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
-          <button className="primary-btn" onClick={login}>Login</button>
-        </>
+        <div>
+          <h2>Login / Register</h2>
+
+          <input
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <div style={{ marginTop: "10px" }}>
+            <button onClick={login}>Login</button>
+            <button onClick={register} style={{ marginLeft: "10px" }}>
+              Register
+            </button>
+          </div>
+        </div>
       ) : (
-        <>
-          <button className="logout-btn" onClick={logout}>Logout</button>
-          <Notes />
-        </>
+        <div>
+          <button onClick={logout}>Logout</button>
+          <Notes API={API} />
+        </div>
       )}
     </div>
   );

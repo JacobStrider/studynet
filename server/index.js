@@ -12,6 +12,8 @@ app.use(cors({
   credentials: true
 }));
 
+console.log("CORS origin set to https://studynet-brown.vercel.app");
+
 app.use(express.json());
 
 app.use(session({

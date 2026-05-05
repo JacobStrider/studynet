@@ -9,19 +9,26 @@ function App() {
   const [password, setPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
 
-  const login = async () => {
-    await axios.post(
-      `${API}/login`,
-      { username, password },
-      { withCredentials: true }
-    );
-
-    setLoggedIn(true);
+  const register = async () => {
+    try {
+      await axios.post(`${API}/register`, { username, password });
+      alert("User created!");
+    } catch (err) {
+      alert(err.response?.data?.error);
+    }
   };
 
-  const register = async () => {
-    await axios.post(`${API}/register`, { username, password });
-    alert("User created");
+  const login = async () => {
+    try {
+      await axios.post(
+        `${API}/login`,
+        { username, password },
+        { withCredentials: true }
+      );
+      setLoggedIn(true);
+    } catch {
+      alert("Login failed");
+    }
   };
 
   const logout = async () => {
@@ -35,8 +42,8 @@ function App() {
 
       {!loggedIn ? (
         <div>
-          <input onChange={(e) => setUsername(e.target.value)} placeholder="Username" />
-          <input type="password" onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
+          <input placeholder="Username" onChange={(e) => setUsername(e.target.value)} />
+          <input type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
 
           <button onClick={login}>Login</button>
           <button onClick={register}>Register</button>

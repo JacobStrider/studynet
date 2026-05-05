@@ -7,14 +7,10 @@ function Notes({ API }) {
   const [content, setContent] = useState("");
 
   const fetchNotes = useCallback(async () => {
-    try {
-      const res = await axios.get(`${API}/notes`, {
-        withCredentials: true,
-      });
-      setNotes(res.data);
-    } catch (err) {
-      console.error("Fetch notes error:", err.response?.data);
-    }
+    const res = await axios.get(`${API}/notes`, {
+      withCredentials: true
+    });
+    setNotes(res.data);
   }, [API]);
 
   useEffect(() => {
@@ -22,64 +18,37 @@ function Notes({ API }) {
   }, [fetchNotes]);
 
   const addNote = async () => {
-    if (!title.trim() || !content.trim()) {
-      alert("Enter title and content");
-      return;
-    }
+    await axios.post(
+      `${API}/notes`,
+      { title, content },
+      { withCredentials: true }
+    );
 
-    try {
-      await axios.post(
-        `${API}/notes`,
-        { title, content },
-        { withCredentials: true }
-      );
-
-      setTitle("");
-      setContent("");
-      fetchNotes();
-    } catch (err) {
-      console.error("Add note error:", err.response?.data);
-      alert("Failed to add note");
-    }
+    setTitle("");
+    setContent("");
+    fetchNotes();
   };
 
   const deleteNote = async (id) => {
-    try {
-      await axios.delete(`${API}/notes/${id}`, {
-        withCredentials: true,
-      });
-      fetchNotes();
-    } catch (err) {
-      console.error("Delete error:", err.response?.data);
-    }
+    await axios.delete(`${API}/notes/${id}`, {
+      withCredentials: true
+    });
+
+    fetchNotes();
   };
 
   return (
     <div>
-      <h2>Add Note</h2>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
+      <textarea value={content} onChange={(e) => setContent(e.target.value)} />
 
-      <input
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-
-      <textarea
-        placeholder="Content"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
-
-      <br />
       <button onClick={addNote}>Add Note</button>
 
-      <h2>Notes</h2>
-
-      {notes.map((note) => (
-        <div key={note.id}>
-          <h3>{note.title}</h3>
-          <p>{note.content}</p>
-          <button onClick={() => deleteNote(note.id)}>Delete</button>
+      {notes.map(n => (
+        <div key={n.id}>
+          <h3>{n.title}</h3>
+          <p>{n.content}</p>
+          <button onClick={() => deleteNote(n.id)}>Delete</button>
         </div>
       ))}
     </div>

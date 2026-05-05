@@ -23,23 +23,12 @@ function Notes({ API }) {
       { title, content },
       { withCredentials: true }
     );
-
-    setTitle("");
-    setContent("");
-    fetchNotes();
-  };
-
-  const deleteNote = async (id) => {
-    await axios.delete(`${API}/notes/${id}`, {
-      withCredentials: true
-    });
-
     fetchNotes();
   };
 
   return (
     <div>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
+      <input value={title} onChange={(e) => setTitle(e.target.value)} />
       <textarea value={content} onChange={(e) => setContent(e.target.value)} />
 
       <button onClick={addNote}>Add Note</button>
@@ -48,7 +37,6 @@ function Notes({ API }) {
         <div key={n.id}>
           <h3>{n.title}</h3>
           <p>{n.content}</p>
-          <button onClick={() => deleteNote(n.id)}>Delete</button>
         </div>
       ))}
     </div>

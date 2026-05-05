@@ -8,26 +8,31 @@ const pool = require("./database");
 
 const app = express();
 
-app.set("trust proxy", 1); 
+// 🔴 REQUIRED for Render (fixes cookies)
+app.set("trust proxy", 1);
 
 app.use(cors({
-  origin: "https://studynet-brown.vercel.app", 
+  origin: "https://studynet-brown.vercel.app", // 🔴 EXACT frontend URL
   credentials: true
 }));
 
 app.use(express.json());
 
 app.use(session({
+  name: "studynet.sid",
   secret: process.env.SESSION_SECRET || "secret",
   resave: false,
   saveUninitialized: false,
+  proxy: true,
   cookie: {
-    secure: true,
-    sameSite: "none"
+    httpOnly: true,
+    secure: true,       // 🔴 REQUIRED for HTTPS
+    sameSite: "none",   // 🔴 REQUIRED for cross-origin
+    maxAge: 1000 * 60 * 60 * 24
   }
 }));
 
-// ---------- AUTH MIDDLEWARE ----------
+// ---------- AUTH ----------
 const auth = (req, res, next) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -40,10 +45,6 @@ app.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: "Missing fields" });
-    }
-
     const hashed = await bcrypt.hash(password, 10);
 
     await pool.query(
@@ -55,44 +56,38 @@ app.post("/register", async (req, res) => {
 
   } catch (err) {
     if (err.code === "23505") {
-      return res.status(400).json({ error: "Username already exists" });
+      return res.status(400).json({ error: "Username exists" });
     }
-
-    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // ---------- LOGIN ----------
 app.post("/login", async (req, res) => {
-  try {
-    const { username, password } = req.body;
+  const { username, password } = req.body;
 
-    const result = await pool.query(
-      "SELECT * FROM users WHERE username = $1",
-      [username]
-    );
+  const result = await pool.query(
+    "SELECT * FROM users WHERE username = $1",
+    [username]
+  );
 
-    if (result.rows.length === 0) {
-      return res.status(400).json({ error: "Invalid credentials" });
-    }
-
-    const user = result.rows[0];
-
-    const match = await bcrypt.compare(password, user.password);
-
-    if (!match) {
-      return res.status(400).json({ error: "Invalid credentials" });
-    }
-
-    req.session.user = user.id;
-
-    res.json({ message: "Logged in" });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+  if (result.rows.length === 0) {
+    return res.status(400).json({ error: "Invalid credentials" });
   }
+
+  const user = result.rows[0];
+
+  const match = await bcrypt.compare(password, user.password);
+
+  if (!match) {
+    return res.status(400).json({ error: "Invalid credentials" });
+  }
+
+  req.session.user = user.id;
+
+  console.log("SESSION SET:", req.session); // 🔴 debug
+
+  res.json({ message: "Logged in" });
 });
 
 // ---------- LOGOUT ----------
@@ -102,17 +97,17 @@ app.post("/logout", (req, res) => {
 });
 
 // ---------- NOTES ----------
-
-// GET
 app.get("/notes", auth, async (req, res) => {
+  console.log("SESSION /notes:", req.session); // 🔴 debug
+
   const result = await pool.query(
     "SELECT * FROM notes WHERE user_id = $1 ORDER BY id DESC",
     [req.session.user]
   );
+
   res.json(result.rows);
 });
 
-// POST
 app.post("/notes", auth, async (req, res) => {
   const { title, content } = req.body;
 
@@ -124,7 +119,6 @@ app.post("/notes", auth, async (req, res) => {
   res.json(result.rows[0]);
 });
 
-// DELETE
 app.delete("/notes/:id", auth, async (req, res) => {
   await pool.query(
     "DELETE FROM notes WHERE id = $1 AND user_id = $2",

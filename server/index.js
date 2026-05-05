@@ -8,7 +8,7 @@ const pool = require("./database");
 const app = express();
 
 app.use(cors({
-  origin: "https://studynet-brown.vercel.app/",
+  origin: "https://studynet-brown.vercel.app",
   credentials: true
 }));
 

@@ -6,21 +6,29 @@ function Notes({ API }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
+  // SAFETY: ensure API exists
+  if (!API) {
+    console.error("API is undefined");
+  }
+
   // GET notes
   const fetchNotes = async () => {
     try {
+      console.log("Fetching notes from:", API);
+
       const res = await axios.get(`${API}/notes`, {
         withCredentials: true,
       });
+
       setNotes(res.data);
     } catch (err) {
-      console.error("Fetch notes error:", err.response?.data);
+      console.error("Fetch notes error:", err.response?.data || err.message);
     }
   };
 
   useEffect(() => {
     fetchNotes();
-  }, []);
+  }, [API]);
 
   // ADD note
   const addNote = async () => {
@@ -30,7 +38,7 @@ function Notes({ API }) {
     }
 
     try {
-      console.log("Adding:", title, content);
+      console.log("POST →", `${API}/notes`);
 
       await axios.post(
         `${API}/notes`,
@@ -38,14 +46,12 @@ function Notes({ API }) {
         { withCredentials: true }
       );
 
-      console.log("Note added!");
-
       setTitle("");
       setContent("");
       fetchNotes();
     } catch (err) {
-      console.error("Add note error:", err.response?.data);
-      alert("Failed to add note");
+      console.error("Add note error:", err.response?.data || err.message);
+      alert("Failed to add note (check login)");
     }
   };
 
@@ -83,7 +89,14 @@ function Notes({ API }) {
       <h2>Notes</h2>
 
       {notes.map((note) => (
-        <div key={note.id} style={{ border: "1px solid gray", margin: "10px", padding: "10px" }}>
+        <div
+          key={note.id}
+          style={{
+            border: "1px solid gray",
+            margin: "10px",
+            padding: "10px",
+          }}
+        >
           <h3>{note.title}</h3>
           <p>{note.content}</p>
 

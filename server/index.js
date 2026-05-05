@@ -8,7 +8,7 @@ const pool = require("./database");
 const app = express();
 
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: "https://studynet-brown.vercel.app/",
   credentials: true
 }));
 
@@ -22,7 +22,7 @@ app.use(session({
 
 const PORT = 5001;
 
-// ================= AUTH MIDDLEWARE =================
+// auth middleware
 function auth(req, res, next) {
   if (!req.session.user) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -30,12 +30,12 @@ function auth(req, res, next) {
   next();
 }
 
-// ================= TEST =================
+// test route
 app.get("/", (req, res) => {
   res.send("API Running");
 });
 
-// ================= REGISTER =================
+// register
 app.post("/register", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -58,7 +58,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// ================= LOGIN =================
+// login
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -88,13 +88,13 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ================= LOGOUT =================
+// logout
 app.post("/logout", (req, res) => {
   req.session.destroy();
   res.json({ message: "Logged out" });
 });
 
-// ================= GET NOTES =================
+// get notes
 app.get("/notes", auth, async (req, res) => {
   try {
     const result = await pool.query(
@@ -108,7 +108,7 @@ app.get("/notes", auth, async (req, res) => {
   }
 });
 
-// ================= CREATE NOTE =================
+// create note
 app.post("/notes", auth, async (req, res) => {
   try {
     const { title, content } = req.body;
@@ -129,7 +129,7 @@ app.post("/notes", auth, async (req, res) => {
   }
 });
 
-// ================= UPDATE NOTE =================
+// udate note
 app.put("/notes/:id", auth, async (req, res) => {
   try {
     const { title, content } = req.body;
